@@ -164,6 +164,9 @@ def monkey_patch_logging(
         if logger.level == logging.NOTSET:
             logger.setLevel(level)
 
+        # Prevent propagation to avoid duplicate logs
+        logger.propagate = False
+
         # Add console handler if requested
         if console_output and not any(
             isinstance(h, logging.StreamHandler) for h in logger.handlers

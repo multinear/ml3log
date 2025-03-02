@@ -1,6 +1,7 @@
 import time
 import logging
-import random
+import json
+from datetime import datetime
 
 import ml3log
 
@@ -24,10 +25,57 @@ def main():
         (logger.critical, "This is a critical message"),
     ]
 
+    # Demonstrate all highlighting features
+    logger.info("=== Demonstrating all highlighting features ===")
+
+    # JSON properties highlighting
+    sample_json = {
+        "user": "example_user",
+        "id": 12345,
+        "is_active": True,
+        "tags": ["important", "demo", "test"],
+        "metadata": {
+            "created_at": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "settings": None,
+        },
+    }
+    logger.info(f"JSON example: {json.dumps(sample_json, indent=2)}")
+
+    # ISO timestamp highlighting
+    current_time = datetime.now().isoformat()
+    logger.info(f"ISO timestamp example: {current_time}")
+
+    # File path highlighting (with and without line numbers)
+    logger.info(
+        "File path example: /Users/johndoe/ml3log/example.py"
+    )
+    logger.info(
+        "File path with line number: /Users/johndoe/ml3log/example.py:42"
+    )
+
+    # File path with quotes
+    logger.info(
+        "File path with quotes: '/Users/johndoe/ml3log/example.py'"
+    )
+    logger.info(
+        'File path with double quotes: "/Users/johndoe/ml3log/example.py:25"'
+    )
+
+    # URL highlighting (clickable)
+    logger.info("URL example: https://github.com/multinear/ml3log")
+    logger.info("Documentation URL: https://docs.python.org/3/library/logging.html")
+
+    # Combined example
+    logger.info(
+        f"Combined example: timestamp {current_time}, "
+        f"file /Users/johndoe/ml3log/example.py:50, "
+        f"and URL https://multinear.com"
+    )
+
     try:
         # Log some messages
-        for i in range(20):
-            log_func, message = random.choice(log_levels)
+        for i, (log_func, message) in enumerate(log_levels):
             log_func(f"{message} #{i+1}")
             time.sleep(1)
 

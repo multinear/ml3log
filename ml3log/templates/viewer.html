@@ -258,8 +258,8 @@
             // Highlight string values in arrays (between square brackets)
             highlighted = highlighted.replace(/(\[|\,)(\s*)"((?:\\"|[^"])*)"/g, '$1$2<span class="json-string">"$3"</span>');
             
-            // Highlight null values
-            highlighted = highlighted.replace(/: (null)/g, ': <span class="json-null">$1</span>');
+            // Highlight null, true, and false values
+            highlighted = highlighted.replace(/: (null|true|false)\b/g, ': <span class="json-null">$1</span>');
             
             // Highlight numeric values (integers and floats)
             highlighted = highlighted.replace(/: (-?\d+(\.\d+)?)/g, ': <span class="json-number">$1</span>');
@@ -280,13 +280,17 @@
         function highlightFilePaths(text) {
             // Simple regex to match file paths with optional line numbers
             // Added word boundary to avoid matching URLs
-            return text.replace(/(?:^|\s)(\/(?:[\w\.-]+\/)*[\w\.-]+\.\w+)(?::(\d+))?/g, 
-                function(match, path, lineNum) {
-                    // Preserve leading space if present
-                    const leadingSpace = match.startsWith(' ') ? ' ' : '';
+            // Also handle paths that may be surrounded by quotes
+            return text.replace(/(?:^|\s|["'])(\/((?:[\w\.-]+\/)*[\w\.-]+\.\w+))(?::(\d+))?(?:["'])?/g, 
+                function(match, path, _, lineNum) {
+                    // Preserve leading characters (space or quote)
+                    const leadingChar = match.match(/^[\s"']/)?.[0] || '';
+                    // Preserve trailing quote if present
+                    const trailingChar = match.match(/["']$/)?.[0] || '';
+                    
                     return lineNum ? 
-                        `${leadingSpace}<span class="filepath">${path}</span>:${lineNum}` : 
-                        `${leadingSpace}<span class="filepath">${path}</span>`;
+                        `${leadingChar}<span class="filepath">${path}</span>:${lineNum}${trailingChar}` : 
+                        `${leadingChar}<span class="filepath">${path}</span>${trailingChar}`;
                 }
             );
         }
@@ -355,8 +359,14 @@
                 const messageText = ` ${log.name}: ${log.message}`;
                 const highlightedMessage = document.createElement('span');
                 
-                // Apply all highlighting in sequence (JSON, timestamps, filepaths, URLs)
-                let processedText = highlightUrls(highlightFilePaths(formatIsoTimestamps(highlightJsonProperties(messageText))));
+                // Apply all highlighting in sequence (timestamps first, then JSON, filepaths, URLs)
+                let processedText = highlightUrls(
+                    highlightFilePaths(
+                        highlightJsonProperties(
+                            formatIsoTimestamps(messageText)
+                        )
+                    )
+                );
                 
                 // Apply search term highlighting if search is active
                 if (searchWords.length > 0) {
