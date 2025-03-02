@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ML3Log Viewer</title>
+    <style>
+        :root {
+            /* Color variables */
+            --color-debug: #6c757d;
+            --color-info: #5bc0de;
+            --color-warning: #e0a800;
+            --color-error: #dc3545;
+            --color-critical: #721c24;
+            
+            --color-bg-light: #f8f9fa;
+            --color-bg-hover: #e9ecef;
+            --color-border: #ddd;
+            --color-text: #333;
+            --color-timestamp: #888;
+            --color-highlight: #ffffaa;
+            --color-bg-critical: #f8d7da;
+            --color-json-property: rgb(30, 86, 150);
+            --color-json-string: #036e00;
+            --color-json-number: #aa5d00;
+            --color-json-null: #a31515;
+            --color-iso-timestamp: #6b11bb;
+            --color-filepath: #0066cc;
+            --color-url: #0e7490;
+        }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            box-sizing: border-box;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        h1 { 
+            color: var(--color-text); 
+            margin-bottom: 10px; 
+            margin-top: 0;
+        }
+        .controls-container {
+            display: flex;
+            margin: 10px 0;
+            gap: 10px;
+            align-items: center;
+        }
+        .level-filters {
+            display: flex;
+            gap: 5px;
+        }
+        .level-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            background-color: var(--color-bg-light);
+            transition: all 0.2s;
+            position: relative;
+        }
+        .level-btn:hover {
+            background-color: var(--color-bg-hover);
+        }
+        .level-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            border-bottom-left-radius: 3px;
+            border-bottom-right-radius: 3px;
+        }
+        .level-btn.info::after { background-color: var(--color-info); }
+        .level-btn.warning::after { background-color: var(--color-warning); }
+        .level-btn.error::after { background-color: var(--color-error); }
+        .level-btn.critical::after { background-color: var(--color-critical); }
+        
+        .level-btn.active {
+            color: white;
+            font-weight: bold;
+        }
+        .level-btn.info.active { background-color: var(--color-info); border-color: var(--color-info); }
+        .level-btn.warning.active { background-color: var(--color-warning); border-color: var(--color-warning); color: #212529; }
+        .level-btn.error.active { background-color: var(--color-error); border-color: var(--color-error); }
+        .level-btn.critical.active { background-color: var(--color-critical); border-color: var(--color-critical); }
+        
+        .search-container { 
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        #search-input { 
+            padding: 8px; 
+            border: 1px solid var(--color-border); 
+            border-radius: 4px; 
+            flex-grow: 1;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        #clear-search {
+            padding: 8px 12px;
+            background-color: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #logs-container {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #fafafa;
+            margin-bottom: 0;
+        }
+        #logs { margin-top: 0; }
+        .log-entry { 
+            border: 1px solid var(--color-border); 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            border-radius: 4px;
+            background-color: white;
+        }
+        .log-entry pre { margin: 0; white-space: pre-wrap; }
+        .timestamp { color: var(--color-timestamp); font-size: 0.8em; }
+        .level-DEBUG { border-left: 5px solid var(--color-debug); }
+        .level-INFO { border-left: 5px solid var(--color-info); }
+        .level-WARNING { border-left: 5px solid var(--color-warning); }
+        .level-ERROR { border-left: 5px solid var(--color-error); }
+        .level-CRITICAL { 
+            border-left: 5px solid var(--color-critical); 
+            background-color: var(--color-bg-critical); 
+        }
+        .level-tag {
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-right: 5px;
+        }
+        .level-tag-DEBUG { color: var(--color-debug); }
+        .level-tag-INFO { color: var(--color-info); }
+        .level-tag-WARNING { color: var(--color-warning); }
+        .level-tag-ERROR { color: var(--color-error); }
+        .level-tag-CRITICAL { color: var(--color-critical); }
+        .highlight {
+            background-color: var(--color-highlight);
+            border-radius: 2px;
+        }
+        .json-property {
+            color: var(--color-json-property);
+            /* font-weight: bold; */
+        }
+        .json-string {
+            color: var(--color-json-string);
+        }
+        .json-number {
+            color: var(--color-json-number);
+        }
+        .json-null {
+            color: var(--color-json-null);
+            font-style: italic;
+        }
+        .iso-timestamp {
+            color: var(--color-iso-timestamp);
+            font-family: monospace;
+        }
+        .filepath {
+            color: var(--color-filepath);
+            font-family: monospace;
+        }
+        .url {
+            color: var(--color-url);
+            text-decoration: underline;
+        }
+        .hidden { display: none; }
+    </style>
+    <script>
+        let lastLogCount = 0;
+        let allLogs = [];
+        let searchTerm = '';
+        let activeLevel = null;
+        let searchWords = [];
+        
+        // Log level numeric values (matching Python's logging levels)
+        const LOG_LEVELS = {
+            'DEBUG': 10,
+            'INFO': 20,
+            'WARNING': 30,
+            'ERROR': 40,
+            'CRITICAL': 50
+        };
+        
+        function fetchLogs() {
+            fetch('/api/logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length !== lastLogCount) {
+                        allLogs = data;
+                        updateButtonVisibility(data);
+                        renderLogs(data);
+                        lastLogCount = data.length;
+                    }
+                })
+                .catch(error => console.error('Error fetching logs:', error));
+        }
+        
+        function updateButtonVisibility(logs) {
+            // Get unique log levels from current logs
+            const levels = new Set(logs.map(log => log.levelname));
+            
+            // Show/hide buttons based on available levels
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                const level = btn.dataset.level;
+                btn.classList.toggle('hidden', !levels.has(level));
+            });
+        }
+        
+        function highlightText(text, words) {
+            if (!words || words.length === 0) return text;
+            
+            // Escape special regex characters in search words
+            const escapedWords = words.map(word => 
+                word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            );
+            
+            // Create a regex pattern that matches any of the search words
+            const pattern = new RegExp(`(${escapedWords.join('|')})`, 'gi');
+            
+            // Split the text by HTML tags and only apply highlighting to text content
+            const parts = text.split(/(<[^>]*>)/);
+            
+            // Process each part - if it's an HTML tag (starts with <), leave it as is
+            // Otherwise, apply the highlighting
+            return parts.map(part => {
+                if (part.startsWith('<') && part.endsWith('>')) {
+                    return part; // Don't modify HTML tags
+                } else {
+                    return part.replace(pattern, '<span class="highlight">$1</span>');
+                }
+            }).join('');
+        }
+        
+        function highlightJsonProperties(text) {
+            // First highlight property names (keys) in the format: "key":
+            let highlighted = text.replace(/"([^"]+)":/g, '<span class="json-property">"$1"</span>:');
+            
+            // Improved regex for string values that may contain escaped quotes
+            // Look for strings that come after a colon (with optional whitespace)
+            highlighted = highlighted.replace(/: "((?:\\"|[^"])*)"/g, ': <span class="json-string">"$1"</span>');
+            
+            // Highlight string values in arrays (between square brackets)
+            highlighted = highlighted.replace(/(\[|\,)(\s*)"((?:\\"|[^"])*)"/g, '$1$2<span class="json-string">"$3"</span>');
+            
+            // Highlight null values
+            highlighted = highlighted.replace(/: (null)/g, ': <span class="json-null">$1</span>');
+            
+            // Highlight numeric values (integers and floats)
+            highlighted = highlighted.replace(/: (-?\d+(\.\d+)?)/g, ': <span class="json-number">$1</span>');
+            
+            return highlighted;
+        }
+        
+        function formatIsoTimestamps(text) {
+            // Match ISO timestamp pattern: YYYY-MM-DDThh:mm:ss.ssssss or similar formats
+            return text.replace(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)\b/g, 
+                function(match) {
+                    // Simply wrap the timestamp in a styled span without changing its format
+                    return `<span class="iso-timestamp">${match}</span>`;
+                }
+            );
+        }
+        
+        function highlightFilePaths(text) {
+            // Simple regex to match file paths with optional line numbers
+            // Added word boundary to avoid matching URLs
+            return text.replace(/(?:^|\s)(\/(?:[\w\.-]+\/)*[\w\.-]+\.\w+)(?::(\d+))?/g, 
+                function(match, path, lineNum) {
+                    // Preserve leading space if present
+                    const leadingSpace = match.startsWith(' ') ? ' ' : '';
+                    return lineNum ? 
+                        `${leadingSpace}<span class="filepath">${path}</span>:${lineNum}` : 
+                        `${leadingSpace}<span class="filepath">${path}</span>`;
+                }
+            );
+        }
+        
+        function highlightUrls(text) {
+            // Match URLs starting with http:// or https://
+            return text.replace(/\b(https?:\/\/[^\s<>"]+)/g, 
+                '<a href="$1" class="url" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+        }
+        
+        function renderLogs(logs) {
+            const logsContainer = document.getElementById('logs');
+            logsContainer.innerHTML = '';
+            
+            // Filter logs by search term and level
+            let filteredLogs = logs;
+            
+            // Apply level filter if active
+            if (activeLevel) {
+                const minLevel = LOG_LEVELS[activeLevel];
+                filteredLogs = filteredLogs.filter(log => LOG_LEVELS[log.levelname] >= minLevel);
+            }
+            
+            // Apply search filter if exists
+            if (searchTerm) {
+                // Split search term into words and filter out empty strings
+                searchWords = searchTerm.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+                
+                if (searchWords.length > 0) {
+                    filteredLogs = filteredLogs.filter(log => {
+                        const logText = `${log.levelname.toLowerCase()} ${log.name.toLowerCase()} ${log.message.toLowerCase()}`;
+                        
+                        // Check if ALL search words are found in the log text (AND condition)
+                        return searchWords.every(word => logText.includes(word));
+                    });
+                }
+            } else {
+                searchWords = [];
+            }
+            
+            // Show logs in chronological order (oldest first, newest last)
+            filteredLogs.forEach(log => {
+                const entry = document.createElement('div');
+                entry.className = `log-entry level-${log.levelname}`;
+                
+                const timestamp = document.createElement('div');
+                timestamp.className = 'timestamp';
+                
+                // Format timestamp in a more readable way
+                const date = new Date(log.created * 1000);
+                const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                timestamp.textContent = formattedDate;
+                
+                const content = document.createElement('pre');
+                
+                // Create colored level tag
+                const levelTag = document.createElement('span');
+                levelTag.className = `level-tag level-tag-${log.levelname}`;
+                levelTag.textContent = `[${log.levelname}]`;
+                
+                // Append level tag
+                content.appendChild(levelTag);
+                
+                // Create message with highlighted search terms and JSON properties
+                const messageText = ` ${log.name}: ${log.message}`;
+                const highlightedMessage = document.createElement('span');
+                
+                // Apply all highlighting in sequence (JSON, timestamps, filepaths, URLs)
+                let processedText = highlightUrls(highlightFilePaths(formatIsoTimestamps(highlightJsonProperties(messageText))));
+                
+                // Apply search term highlighting if search is active
+                if (searchWords.length > 0) {
+                    processedText = highlightText(processedText, searchWords);
+                }
+                
+                highlightedMessage.innerHTML = processedText;
+                
+                content.appendChild(highlightedMessage);
+                
+                entry.appendChild(timestamp);
+                entry.appendChild(content);
+                logsContainer.appendChild(entry);
+            });
+            
+            // Auto-scroll to bottom
+            scrollToBottom();
+        }
+        
+        function scrollToBottom() {
+            const container = document.getElementById('logs-container');
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function handleSearch() {
+            searchTerm = document.getElementById('search-input').value.trim();
+            renderLogs(allLogs);
+        }
+        
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            searchTerm = '';
+            searchWords = [];
+            renderLogs(allLogs);
+
+            // Focus on search input after clearing
+            document.getElementById('search-input').focus();
+        }
+        
+        function setLevelFilter(level) {
+            // Update active level
+            if (activeLevel === level) {
+                // If clicking the active level, clear the filter
+                activeLevel = null;
+                document.querySelectorAll('.level-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            } else {
+                // Set new active level
+                activeLevel = level;
+                
+                // Update button states
+                document.querySelectorAll('.level-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`.level-btn.${level.toLowerCase()}`).classList.add('active');
+            }
+            
+            // Re-render logs with the new filter
+            renderLogs(allLogs);
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial fetch
+            fetchLogs();
+            
+            // Set up search functionality
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', handleSearch);
+            
+            // Focus on search input by default
+            searchInput.focus();
+            
+            document.getElementById('clear-search').addEventListener('click', clearSearch);
+            
+            // Set up level filter buttons
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const level = e.target.dataset.level;
+                    setLevelFilter(level);
+                });
+            });
+            
+            // Poll for new logs every second
+            setInterval(fetchLogs, 1000);
+        });
+    </script>
+</head>
+<body>
+    <h1>ML3Log Viewer</h1>
+    
+    <div class="controls-container">
+        <div class="level-filters">
+            <button class="level-btn info" data-level="INFO">INFO</button>
+            <button class="level-btn warning" data-level="WARNING">WARNING</button>
+            <button class="level-btn error" data-level="ERROR">ERROR</button>
+            <button class="level-btn critical" data-level="CRITICAL">CRITICAL</button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Filter logs">
+            <button id="clear-search">Clear</button>
+        </div>
+    </div>
+    
+    <div id="logs-container">
+        <div id="logs"></div>
+    </div>
+</body>
+</html>
