@@ -62,10 +62,10 @@ class ML3LogHandler(http.server.BaseHTTPRequestHandler):
             content_type, _ = mimetypes.guess_type(file_path)
             if not content_type:
                 content_type = 'application/octet-stream'  # Default content type
-            
+
             with open(file_path, 'rb') as f:
                 content = f.read()
-            
+
             self._set_headers(content_type)
             self.wfile.write(content)
         except FileNotFoundError:
