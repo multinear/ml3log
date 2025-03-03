@@ -104,16 +104,16 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
 }
-.autoscroll-container {
+.autoupdate-container {
     display: flex;
     align-items: center;
     margin-left: 0;
     white-space: nowrap;
 }
-.autoscroll-container input {
+.autoupdate-container input {
     margin-right: 5px;
 }
-.autoscroll-container label {
+.autoupdate-container label {
     font-size: 14px;
     color: var(--color-text);
     user-select: none;

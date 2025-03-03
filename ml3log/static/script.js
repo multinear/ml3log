@@ -2,7 +2,7 @@ let allLogs = [];
 let searchTerm = '';
 let activeLevel = null;
 let searchWords = [];
-let autoScroll = true;
+let autoUpdate = true;
 let lastLogId = 0;  // Track the last log ID we've received
 
 // Log level numeric values (matching Python's logging levels)
@@ -15,6 +15,9 @@ const LOG_LEVELS = {
 };
 
 function fetchLogs() {
+    // Only fetch if auto-update is enabled
+    if (!autoUpdate) return;
+    
     // Include the last log ID in the request
     fetch(`/api/logs?last_id=${lastLogId}`)
         .then(response => response.json())
@@ -206,15 +209,15 @@ function renderLogs(logs) {
         logsContainer.appendChild(entry);
     });
     
-    // Auto-scroll to bottom
-    scrollToBottom();
+    // Auto-scroll to bottom if enabled
+    if (autoUpdate) {
+        scrollToBottom();
+    }
 }
 
 function scrollToBottom() {
-    if (autoScroll) {
-        const container = document.getElementById('logs-container');
-        container.scrollTop = container.scrollHeight;
-    }
+    const container = document.getElementById('logs-container');
+    container.scrollTop = container.scrollHeight;
 }
 
 function handleSearch() {
@@ -255,9 +258,9 @@ function setLevelFilter(level) {
     renderLogs(allLogs);
 }
 
-function toggleAutoScroll() {
-    autoScroll = document.getElementById('autoscroll-checkbox').checked;
-    if (autoScroll) {
+function toggleAutoUpdate() {
+    autoUpdate = document.getElementById('autoupdate-checkbox').checked;
+    if (autoUpdate) {
         scrollToBottom();
     }
 }
@@ -285,8 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('clear-search').addEventListener('click', clearSearch);
     
-    // Set up autoscroll checkbox
-    document.getElementById('autoscroll-checkbox').addEventListener('change', toggleAutoScroll);
+    // Set up autoupdate checkbox
+    document.getElementById('autoupdate-checkbox').addEventListener('change', toggleAutoUpdate);
     
     // Set up level filter buttons
     document.querySelectorAll('.level-btn').forEach(btn => {
