@@ -109,6 +109,21 @@
             border-radius: 4px;
             cursor: pointer;
         }
+        .autoscroll-container {
+            display: flex;
+            align-items: center;
+            margin-left: 0;
+            white-space: nowrap;
+        }
+        .autoscroll-container input {
+            margin-right: 5px;
+        }
+        .autoscroll-container label {
+            font-size: 14px;
+            color: var(--color-text);
+            user-select: none;
+            cursor: pointer;
+        }
         #logs-container {
             flex: 1;
             overflow-y: auto;
@@ -121,13 +136,33 @@
         #logs { margin-top: 0; }
         .log-entry { 
             border: 1px solid var(--color-border); 
-            padding: 10px; 
+            padding: 7px;
+            padding-left: 10px;
             margin-bottom: 10px; 
             border-radius: 4px;
             background-color: white;
         }
-        .log-entry pre { margin: 0; white-space: pre-wrap; }
-        .timestamp { color: var(--color-timestamp); font-size: 0.8em; }
+        .log-entry pre {
+            margin: 0;
+            white-space: pre-wrap;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            line-height: 1.5em;
+        }
+        .log-message {
+            flex-grow: 1;
+        }
+        .log-meta {
+            display: flex;
+            align-items: center;
+        }
+        .timestamp {
+            color: var(--color-timestamp);
+            font-size: 0.9em;
+            margin-left: 10px;
+            white-space: nowrap;
+        }
         .level-DEBUG { border-left: 5px solid var(--color-debug); }
         .level-INFO { border-left: 5px solid var(--color-info); }
         .level-WARNING { border-left: 5px solid var(--color-warning); }
@@ -137,12 +172,14 @@
             background-color: var(--color-bg-critical); 
         }
         .level-tag {
-            display: inline-block;
-            padding: 2px 5px;
+            /* display: inline-block; */
+            padding: 5px;
             border-radius: 3px;
             font-weight: bold;
             font-size: 0.9em;
             margin-right: 5px;
+            float: right;
+            margin-left: 10px;
         }
         .level-tag-DEBUG { color: var(--color-debug); }
         .level-tag-INFO { color: var(--color-info); }
@@ -187,6 +224,7 @@
         let searchTerm = '';
         let activeLevel = null;
         let searchWords = [];
+        let autoScroll = true;
         
         // Log level numeric values (matching Python's logging levels)
         const LOG_LEVELS = {
@@ -337,29 +375,12 @@
                 const entry = document.createElement('div');
                 entry.className = `log-entry level-${log.levelname}`;
                 
-                const timestamp = document.createElement('div');
-                timestamp.className = 'timestamp';
-                
-                // Format timestamp in a more readable way
-                const date = new Date(log.created * 1000);
-                const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-                timestamp.textContent = formattedDate;
-                
                 const content = document.createElement('pre');
                 
-                // Create colored level tag
-                const levelTag = document.createElement('span');
-                levelTag.className = `level-tag level-tag-${log.levelname}`;
-                levelTag.textContent = `[${log.levelname}]`;
-                
-                // Append level tag
-                content.appendChild(levelTag);
-                
-                // Create message with highlighted search terms and JSON properties
-                const messageText = ` ${log.name}: ${log.message}`;
+                const messageText = `${log.name}: ${log.message}`;
                 const highlightedMessage = document.createElement('span');
+                highlightedMessage.className = 'log-message';
                 
-                // Apply all highlighting in sequence (timestamps first, then JSON, filepaths, URLs)
                 let processedText = highlightUrls(
                     highlightFilePaths(
                         highlightJsonProperties(
@@ -368,16 +389,33 @@
                     )
                 );
                 
-                // Apply search term highlighting if search is active
                 if (searchWords.length > 0) {
                     processedText = highlightText(processedText, searchWords);
                 }
                 
                 highlightedMessage.innerHTML = processedText;
                 
-                content.appendChild(highlightedMessage);
+                const logMeta = document.createElement('div');
+                // Format timestamp in a more readable way
+                const date = new Date(log.created * 1000);
+                const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
                 
-                entry.appendChild(timestamp);
+                // Create timestamp element
+                const timestamp = document.createElement('span');
+                timestamp.className = 'timestamp';
+                timestamp.textContent = formattedDate;
+                
+                // Create colored level tag
+                const levelTag = document.createElement('span');
+                levelTag.className = `level-tag level-tag-${log.levelname}`;
+                levelTag.textContent = `[${log.levelname}]`;
+                
+                // Add elements to the content in the right order
+                // First the message, then level tag and timestamp (which will float right)
+                content.appendChild(highlightedMessage);
+                content.appendChild(levelTag);
+                content.appendChild(timestamp);
+                
                 entry.appendChild(content);
                 logsContainer.appendChild(entry);
             });
@@ -387,8 +425,10 @@
         }
         
         function scrollToBottom() {
-            const container = document.getElementById('logs-container');
-            container.scrollTop = container.scrollHeight;
+            if (autoScroll) {
+                const container = document.getElementById('logs-container');
+                container.scrollTop = container.scrollHeight;
+            }
         }
         
         function handleSearch() {
@@ -429,6 +469,13 @@
             renderLogs(allLogs);
         }
         
+        function toggleAutoScroll() {
+            autoScroll = document.getElementById('autoscroll-checkbox').checked;
+            if (autoScroll) {
+                scrollToBottom();
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', () => {
             // Initial fetch
             fetchLogs();
@@ -441,6 +488,9 @@
             searchInput.focus();
             
             document.getElementById('clear-search').addEventListener('click', clearSearch);
+            
+            // Set up autoscroll checkbox
+            document.getElementById('autoscroll-checkbox').addEventListener('change', toggleAutoScroll);
             
             // Set up level filter buttons
             document.querySelectorAll('.level-btn').forEach(btn => {
@@ -469,6 +519,11 @@
         <div class="search-container">
             <input type="text" id="search-input" placeholder="Filter logs">
             <button id="clear-search">Clear</button>
+        </div>
+        
+        <div class="autoscroll-container">
+            <input type="checkbox" id="autoscroll-checkbox" checked>
+            <label for="autoscroll-checkbox">Auto-scroll</label>
         </div>
     </div>
     
