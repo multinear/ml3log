@@ -74,6 +74,8 @@ http://localhost:6020
 
 The web interface will automatically update with new logs as they arrive.
 
+<img src="static/screenshot.png" alt="Screenshot" width="800" />
+
 ## License
 
-MIT
+[MIT](LICENSE)
