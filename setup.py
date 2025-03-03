@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     description="A minimal logger and web server",
     author="Multinear",
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     package_data={
         "ml3log": ["templates/*.html"],
     },
