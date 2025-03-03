@@ -1,1 +1,3 @@
-include ml3log/templates/*.html 
+include ml3log/static/*.html
+include ml3log/static/*.css
+include ml3log/static/*.js

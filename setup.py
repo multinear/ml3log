@@ -8,7 +8,7 @@ setup(
     author="Multinear",
     python_requires=">=3.8",
     package_data={
-        "ml3log": ["templates/*.html"],
+        "ml3log": ["static/*.html", "static/*.css", "static/*.js"],
     },
     include_package_data=True,
     classifiers=[

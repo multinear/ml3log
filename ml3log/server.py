@@ -5,17 +5,19 @@ import threading
 import os
 import signal
 import sys
+import mimetypes
 from pathlib import Path
 from typing import List, Dict, Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 # Global storage for logs
 _logs: List[Dict[str, Any]] = []
 _logs_lock = threading.Lock()
+_next_log_id = 0  # Counter for assigning unique IDs to logs
 
-# Get the path to the template file
-_TEMPLATE_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "templates"
-_TEMPLATE_PATH = _TEMPLATE_DIR / "viewer.html"
+# Get the path to the static directory
+_STATIC_DIR = Path(os.path.dirname(os.path.abspath(__file__))) / "static"
+_HTML_PATH = _STATIC_DIR / "viewer.html"
 
 # Global server instance for proper shutdown
 _server = None
@@ -23,10 +25,10 @@ _server_lock = threading.Lock()
 _server_started = False
 
 
-def _read_template() -> str:
+def _read_html_template() -> str:
     """Read the HTML template from the file."""
     try:
-        with open(_TEMPLATE_PATH, 'r') as f:
+        with open(_HTML_PATH, 'r') as f:
             return f.read()
     except FileNotFoundError:
         # Fallback to a simple template if the file is not found
@@ -53,17 +55,52 @@ class ML3LogHandler(http.server.BaseHTTPRequestHandler):
         self.send_header('Content-type', content_type)
         self.end_headers()
 
+    def _serve_static_file(self, file_path):
+        """Serve a static file with the appropriate content type."""
+        try:
+            # Determine content type based on file extension
+            content_type, _ = mimetypes.guess_type(file_path)
+            if not content_type:
+                content_type = 'application/octet-stream'  # Default content type
+            
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            
+            self._set_headers(content_type)
+            self.wfile.write(content)
+        except FileNotFoundError:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'File Not Found')
+
     def do_GET(self):
         parsed_url = urlparse(self.path)
         path = parsed_url.path
+        query_params = parse_qs(parsed_url.query)
 
         if path == '/':
             self._set_headers()
-            self.wfile.write(_read_template().encode())
+            self.wfile.write(_read_html_template().encode())
         elif path == '/api/logs':
             self._set_headers('application/json')
+
+            # Get last_id from query params (if any)
+            last_id_param = query_params.get('last_id', ['0'])[0]
+            last_id = int(last_id_param) if last_id_param.isdigit() else 0
+
             with _logs_lock:
-                self.wfile.write(json.dumps(_logs).encode())
+                # For initial request or if no new logs, return appropriate response
+                response = {
+                    'logs': [log for log in _logs if log.get('id', 0) > last_id],
+                    'last_id': _next_log_id - 1 if _next_log_id > 0 else 0,
+                }
+                self.wfile.write(json.dumps(response).encode())
+        # Serve static files (CSS, JS, etc.)
+        elif path.startswith('/styles.css') or path.startswith('/script.js'):
+            # Remove leading slash and get the file path
+            file_name = path[1:]  # Remove leading slash
+            file_path = _STATIC_DIR / file_name
+            self._serve_static_file(file_path)
         else:
             self.send_response(404)
             self.end_headers()
@@ -76,7 +113,12 @@ class ML3LogHandler(http.server.BaseHTTPRequestHandler):
 
             try:
                 log_entry = json.loads(post_data.decode('utf-8'))
+
+                # Add ID to log entry
+                global _next_log_id
                 with _logs_lock:
+                    log_entry['id'] = _next_log_id
+                    _next_log_id += 1
                     _logs.append(log_entry)
 
                 self._set_headers()

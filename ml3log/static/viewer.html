@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML3Log Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>ML3Log Viewer</h1>
+    
+    <div class="controls-container">
+        <div class="level-filters">
+            <button class="level-btn info" data-level="INFO">INFO</button>
+            <button class="level-btn warning" data-level="WARNING">WARNING</button>
+            <button class="level-btn error" data-level="ERROR">ERROR</button>
+            <button class="level-btn critical" data-level="CRITICAL">CRITICAL</button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Filter logs">
+            <button id="clear-search">Clear</button>
+        </div>
+        
+        <div class="autoscroll-container">
+            <input type="checkbox" id="autoscroll-checkbox" checked>
+            <label for="autoscroll-checkbox">Auto-scroll</label>
+        </div>
+    </div>
+    
+    <div id="logs-container">
+        <div id="logs"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
