@@ -235,6 +235,13 @@ function clearSearch() {
     document.getElementById('search-input').focus();
 }
 
+function clearLogs() {
+    // Clear all logs but keep the last log ID
+    allLogs = [];
+    updateButtonVisibility(allLogs);
+    renderLogs(allLogs);
+}
+
 function setLevelFilter(level) {
     // Update active level
     if (activeLevel === level) {
@@ -286,7 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Focus on search input by default
     searchInput.focus();
     
-    document.getElementById('clear-search').addEventListener('click', clearSearch);
+    // Set up clear search button
+    document.getElementById('clear-search-btn').addEventListener('click', clearSearch);
+    
+    // Set up clear logs button
+    document.getElementById('clear-logs-btn').addEventListener('click', clearLogs);
     
     // Set up autoupdate checkbox
     document.getElementById('autoupdate-checkbox').addEventListener('change', toggleAutoUpdate);

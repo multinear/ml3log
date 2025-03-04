@@ -87,23 +87,62 @@ h1 {
 .search-container { 
     display: flex;
     align-items: center;
+    margin: 0 10px;
+    position: relative;
     flex: 1;
 }
+
 #search-input { 
-    padding: 8px; 
-    border: 1px solid var(--color-border); 
-    border-radius: 4px; 
-    flex-grow: 1;
     margin-right: 10px;
+    padding: 5px 30px 5px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
     font-size: 14px;
+    width: 100%;
 }
-#clear-search {
-    padding: 8px 12px;
-    background-color: var(--color-bg-light);
+
+.clear-input-btn {
+    position: absolute;
+    right: 110px; /* Position to the left of the Clear logs button */
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    opacity: 0.7;
+}
+
+.clear-input-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    opacity: 1;
+}
+
+#clear-logs-btn {
+    margin-left: 5px;
+    padding: 5px 10px;
+    background-color: var(--color-button-bg);
     border: 1px solid var(--color-border);
     border-radius: 4px;
     cursor: pointer;
+    font-size: 14px;
+    color: var(--color-text);
+    white-space: nowrap;
 }
+
+#clear-logs-btn:hover {
+    background-color: var(--color-button-hover);
+}
+
 .autoupdate-container {
     display: flex;
     align-items: center;
