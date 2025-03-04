@@ -1,6 +1,7 @@
 let allLogs = [];
 let searchTerm = '';
 let activeLevel = null;
+let activeLogger = '';
 let searchWords = [];
 let autoUpdate = true;
 let lastLogId = 0;  // Track the last log ID we've received
@@ -32,6 +33,7 @@ function fetchLogs() {
                 
                 // Update UI with new logs
                 updateButtonVisibility(allLogs);
+                updateLoggerSelect(allLogs);
                 renderLogs(allLogs);
             }
         })
@@ -129,6 +131,40 @@ function highlightUrls(text) {
     );
 }
 
+function updateLoggerSelect(logs) {
+    const loggerSelect = document.getElementById('logger-select');
+    const currentValue = loggerSelect.value;
+    
+    // Get unique logger names in order of appearance
+    const loggerNames = [];
+    logs.forEach(log => {
+        if (!loggerNames.includes(log.name)) {
+            loggerNames.push(log.name);
+        }
+    });
+    
+    // Save current selection
+    const currentSelection = loggerSelect.value;
+    
+    // Clear all options except the first one (All Loggers)
+    while (loggerSelect.options.length > 1) {
+        loggerSelect.remove(1);
+    }
+    
+    // Add logger names as options
+    loggerNames.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        loggerSelect.appendChild(option);
+    });
+    
+    // Restore selection if it still exists
+    if (loggerNames.includes(currentSelection)) {
+        loggerSelect.value = currentSelection;
+    }
+}
+
 function renderLogs(logs) {
     const logsContainer = document.getElementById('logs');
     logsContainer.innerHTML = '';
@@ -140,6 +176,11 @@ function renderLogs(logs) {
     if (activeLevel) {
         const minLevel = LOG_LEVELS[activeLevel];
         filteredLogs = filteredLogs.filter(log => LOG_LEVELS[log.levelname] >= minLevel);
+    }
+    
+    // Apply logger filter if active
+    if (activeLogger) {
+        filteredLogs = filteredLogs.filter(log => log.name === activeLogger);
     }
     
     // Apply search filter if exists
@@ -272,6 +313,11 @@ function toggleAutoUpdate() {
     }
 }
 
+function setLoggerFilter(loggerName) {
+    activeLogger = loggerName;
+    renderLogs(allLogs);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initial fetch - get all logs the first time
     fetch('/api/logs')
@@ -281,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 allLogs = data.logs;
                 lastLogId = data.last_id || 0;
                 updateButtonVisibility(allLogs);
+                updateLoggerSelect(allLogs);
                 renderLogs(allLogs);
             }
         })
@@ -308,6 +355,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const level = e.target.dataset.level;
             setLevelFilter(level);
         });
+    });
+    
+    // Set up logger select
+    document.getElementById('logger-select').addEventListener('change', (e) => {
+        setLoggerFilter(e.target.value);
     });
     
     // Poll for new logs every second
