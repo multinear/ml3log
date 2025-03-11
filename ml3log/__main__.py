@@ -16,8 +16,8 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"Starting ML3Log server at http://{args.host}:{args.port}")
-    print("Press Ctrl+C to stop")
+    # print(f"Starting ML3Log server at http://{args.host}:{args.port}")
+    # print("Press Ctrl+C to stop")
 
     # Start the server
     start_server(address=args.host, port=args.port)
