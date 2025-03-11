@@ -9,6 +9,7 @@ A minimal Python logging package that provides both console logging and a web in
 - Minimal footprint with no external dependencies
 - Configurable port (default: 6020)
 - Monkey patching support for standard logging module
+- Command-line interface for quick server startup
 
 ## Installation
 
@@ -20,6 +21,8 @@ pip install ml3log
 
 ### Starting the server
 
+#### From Python code
+
 ```python
 import ml3log
 
@@ -28,6 +31,21 @@ ml3log.start_server()
 
 # Or specify a custom port
 ml3log.start_server(port=8080)
+```
+
+#### From the command line
+
+ML3Log can be started directly from the command line:
+
+```bash
+# Using the ml3log command (after installation)
+ml3log
+
+# Or with custom host and port
+ml3log --host 0.0.0.0 --port 8080
+
+# Alternatively, using the Python module syntax
+python -m ml3log
 ```
 
 ### Using the logger
@@ -62,6 +80,41 @@ try:
     1/0
 except Exception as e:
     logger.exception("An error occurred")
+```
+
+### Sending logs from JavaScript
+
+You can send logs directly from JavaScript to ML3Log using a simple fetch request:
+
+```javascript
+// Minimal example to send a log event to ML3Log
+async function sendLog(message, level = 'INFO', loggerName = 'js-client') {
+  const logEntry = {
+    levelname: level,
+    name: loggerName,
+    message: message,
+    created: Date.now() / 1000  // Current time in seconds
+  };
+
+  try {
+    const response = await fetch('http://localhost:6020/traces', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(logEntry)
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to send log:', error);
+    return false;
+  }
+}
+
+// Usage examples
+sendLog('User clicked submit button');
+sendLog('API request failed', 'ERROR');
+sendLog('Debug information', 'DEBUG', 'frontend-app');
 ```
 
 ### Viewing logs

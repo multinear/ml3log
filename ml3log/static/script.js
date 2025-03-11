@@ -207,7 +207,7 @@ function renderLogs(logs) {
         
         const content = document.createElement('pre');
         
-        const messageText = `${log.name}: ${log.message}`;
+        const messageText = `<b>${log.name}</b>: ${log.message}`;
         const highlightedMessage = document.createElement('span');
         highlightedMessage.className = 'log-message';
         

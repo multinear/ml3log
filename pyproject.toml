@@ -1,7 +1,14 @@
 [project]
 name = "ml3log"
-version = "0.1.0"
+version = "0.1.1"
 description = "A minimal logger and web server"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = []
+
+[project.scripts]
+ml3log = "ml3log.__main__:main"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"

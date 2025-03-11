@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="ml3log",
-    version="0.1.0",
+    version="0.1.1",
     packages=find_packages(),
     description="A minimal logger and web server",
     author="Multinear",
@@ -11,6 +11,11 @@ setup(
         "ml3log": ["static/*.html", "static/*.css", "static/*.js"],
     },
     include_package_data=True,
+    entry_points={
+        "console_scripts": [
+            "ml3log=ml3log.__main__:main",
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
