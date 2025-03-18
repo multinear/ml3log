@@ -15,6 +15,17 @@ const LOG_LEVELS = {
     'CRITICAL': 50
 };
 
+// Configuration for log truncation
+const SHOW_MAX_LINES = 15;
+const SHOW_MAX_CHARS = 1500;
+const TRUNCATE_MAX_LINES = 5;
+const TRUNCATE_MAX_CHARS = 1000;
+const TRUNCATION_MESSAGE = 'expand entry';
+const COLLAPSE_MESSAGE = 'collapse entry';
+
+// Add a map to track expanded entries by their log ID
+const expandedEntries = new Map();
+
 function fetchLogs() {
     // Only fetch if auto-update is enabled
     if (!autoUpdate) return;
@@ -165,6 +176,70 @@ function updateLoggerSelect(logs) {
     }
 }
 
+function truncateLogMessage(message) {
+    // Count the number of lines
+    const lines = message.split('\n');
+    
+    // Check if the message should be truncated
+    if (lines.length > SHOW_MAX_LINES || message.length > SHOW_MAX_CHARS) {
+        // Create truncated version (first few lines)
+        let truncated = lines.slice(0, TRUNCATE_MAX_LINES).join('\n');
+        
+        // If the truncated text is still too long, truncate by characters
+        if (truncated.length > SHOW_MAX_CHARS) {
+            truncated = truncated.substring(0, TRUNCATE_MAX_CHARS);
+        }
+        
+        return {
+            isTruncated: true,
+            truncatedContent: truncated,
+            fullContent: message
+        };
+    }
+    
+    // No truncation needed
+    return {
+        isTruncated: false,
+        fullContent: message
+    };
+}
+
+// Helper function to add navigation arrows to a log entry
+function addNavigationArrows(entry) {
+    // Create up arrow
+    const upArrow = document.createElement('div');
+    upArrow.className = 'nav-arrow nav-arrow-up';
+    upArrow.innerHTML = '&#9650;'; // Unicode for up arrow
+    upArrow.title = 'Go to previous log';
+    
+    // Create down arrow
+    const downArrow = document.createElement('div');
+    downArrow.className = 'nav-arrow nav-arrow-down';
+    downArrow.innerHTML = '&#9660;'; // Unicode for down arrow
+    downArrow.title = 'Go to next log';
+    
+    // Add click handlers
+    upArrow.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const prevEntry = entry.previousElementSibling;
+        if (prevEntry) {
+            prevEntry.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+    
+    downArrow.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const nextEntry = entry.nextElementSibling;
+        if (nextEntry) {
+            nextEntry.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+    
+    // Add arrows to entry
+    entry.appendChild(upArrow);
+    entry.appendChild(downArrow);
+}
+
 function renderLogs(logs) {
     const logsContainer = document.getElementById('logs');
     logsContainer.innerHTML = '';
@@ -207,25 +282,10 @@ function renderLogs(logs) {
         
         const content = document.createElement('pre');
         
-        const messageText = `<b>${log.name}</b>: ${log.message}`;
-        const highlightedMessage = document.createElement('span');
-        highlightedMessage.className = 'log-message';
+        // Create metadata container for level tag and timestamp
+        const metaContainer = document.createElement('div');
+        metaContainer.className = 'log-meta';
         
-        let processedText = highlightUrls(
-            highlightFilePaths(
-                highlightJsonProperties(
-                    formatIsoTimestamps(messageText)
-                )
-            )
-        );
-        
-        if (searchWords.length > 0) {
-            processedText = highlightText(processedText, searchWords);
-        }
-        
-        highlightedMessage.innerHTML = processedText;
-        
-        const logMeta = document.createElement('div');
         // Format timestamp in a more readable way
         const date = new Date(log.created * 1000);
         const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
@@ -240,13 +300,98 @@ function renderLogs(logs) {
         levelTag.className = `level-tag level-tag-${log.levelname}`;
         levelTag.textContent = `[${log.levelname}]`;
         
-        // Add elements to the content in the right order
-        // First the message, then level tag and timestamp (which will float right)
-        content.appendChild(highlightedMessage);
-        content.appendChild(levelTag);
-        content.appendChild(timestamp);
+        // Add level tag and timestamp to meta container
+        metaContainer.appendChild(levelTag);
+        metaContainer.appendChild(timestamp);
         
-        entry.appendChild(content);
+        const messageText = `<b>${log.name}</b>: ${log.message}`;
+        const highlightedMessage = document.createElement('span');
+        highlightedMessage.className = 'log-message';
+        
+        // Check if the message needs to be truncated
+        const truncatedLog = truncateLogMessage(messageText);
+        let processedText;
+        
+        if (truncatedLog.isTruncated) {
+            // For truncated logs, store both versions and add click handler
+            const truncatedContent = truncatedLog.truncatedContent;
+            const fullContent = truncatedLog.fullContent;
+            
+            // Check if this log was previously expanded
+            const wasExpanded = expandedEntries.has(log.id);
+            
+            // Process the appropriate content based on previous state
+            processedText = wasExpanded ? 
+                processHighlightedText(fullContent) : 
+                processHighlightedText(truncatedContent);
+            
+            // Set the processed text to the highlighted message
+            highlightedMessage.innerHTML = processedText;
+            
+            // Create an expandable indicator as a separate element
+            const expandIndicator = document.createElement('div');
+            expandIndicator.className = 'truncation-indicator';
+            expandIndicator.textContent = wasExpanded ? COLLAPSE_MESSAGE : TRUNCATION_MESSAGE;
+            
+            // Function to toggle expansion state
+            const toggleExpansion = function(indicator) {
+                if (indicator.dataset.expanded === 'true') {
+                    // Collapse
+                    highlightedMessage.innerHTML = processHighlightedText(truncatedContent);
+                    indicator.textContent = TRUNCATION_MESSAGE;
+                    indicator.dataset.expanded = 'false';
+                    // Remove from expanded entries map
+                    expandedEntries.delete(log.id);
+                } else {
+                    // Expand
+                    highlightedMessage.innerHTML = processHighlightedText(fullContent);
+                    indicator.textContent = COLLAPSE_MESSAGE;
+                    indicator.dataset.expanded = 'true';
+                    // Add to expanded entries map
+                    expandedEntries.set(log.id, true);
+                }
+            };
+            
+            // Add click handler only to the indicator
+            expandIndicator.onclick = function(e) {
+                e.stopPropagation(); // Prevent event bubbling
+                toggleExpansion(this);
+            };
+            
+            // Add click handler to left border (using the ::before pseudo-element)
+            entry.addEventListener('click', function(e) {
+                // Check if click is on the left border area (first 5px)
+                if (e.offsetX <= 5) {
+                    toggleExpansion(expandIndicator);
+                }
+            });
+            
+            // Set initial expanded state based on previous state
+            expandIndicator.dataset.expanded = wasExpanded ? 'true' : 'false';
+            
+            // Add message and meta container to content
+            content.appendChild(highlightedMessage);
+            content.appendChild(metaContainer);
+            
+            // Add content and expand indicator to entry
+            entry.appendChild(content);
+            entry.appendChild(expandIndicator);
+        } else {
+            // For normal logs, just process the content
+            processedText = processHighlightedText(truncatedLog.fullContent);
+            highlightedMessage.innerHTML = processedText;
+            
+            // Add message and meta container to content
+            content.appendChild(highlightedMessage);
+            content.appendChild(metaContainer);
+            
+            // Add content to entry
+            entry.appendChild(content);
+        }
+        
+        // Add navigation arrows to each entry
+        addNavigationArrows(entry);
+        
         logsContainer.appendChild(entry);
     });
     
@@ -316,6 +461,23 @@ function toggleAutoUpdate() {
 function setLoggerFilter(loggerName) {
     activeLogger = loggerName;
     renderLogs(allLogs);
+}
+
+// Helper function to apply all highlighting to a text
+function processHighlightedText(text) {
+    let processedText = highlightUrls(
+        highlightFilePaths(
+            highlightJsonProperties(
+                formatIsoTimestamps(text)
+            )
+        )
+    );
+    
+    if (searchWords.length > 0) {
+        processedText = highlightText(processedText, searchWords);
+    }
+    
+    return processedText;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

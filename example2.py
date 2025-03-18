@@ -1,6 +1,7 @@
 import logging
 import time
 import json
+import traceback
 from datetime import datetime
 
 # Import ml3log and start the server
@@ -108,6 +109,55 @@ def main():
         "URL and file path: https://multinear.com and "
         "/Users/johndoe/ml3log/logger.py:128"
     )
+    
+    # Demonstrate truncation for long log messages
+    logger.info("=== Demonstrating log truncation for long messages ===")
+    
+    # Example 1: Long multi-line log message
+    long_text = "\n".join([f"This is line {i} of a very long log message" for i in range(1, 20)])
+    logger.info("Long multi-line message:\n%s", long_text)
+    
+    # Example 2: Very long single line
+    long_single_line = "This is a very long single line log message that exceeds the character limit. " * 10
+    logger.info("Long single line: %s", long_single_line)
+    
+    # Example 3: Long error traceback
+    try:
+        # Intentionally cause a deep error traceback
+        def level1(): return level2()
+        def level2(): return level3()
+        def level3(): return level4()
+        def level4(): return level5()
+        def level5(): return level6()
+        def level6(): return level7()
+        def level7(): return level8()
+        def level8(): return level9()
+        def level9(): return level10()
+        def level10(): return 1/0
+        
+        level1()
+    except Exception as e:
+        error_traceback = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+        logger.error("Complex error with long traceback:\n%s", error_traceback)
+    
+    # Example 4: Long JSON output
+    large_json = {
+        "data": [
+            {
+                "id": i,
+                "name": f"Item {i}",
+                "attributes": {
+                    "created": datetime.now().isoformat(),
+                    "values": [j for j in range(20)],
+                    "metadata": {
+                        "description": "This is a very long description " * 5,
+                        "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+                    }
+                }
+            } for i in range(10)
+        ]
+    }
+    logger.info("Large JSON payload:\n%s", json.dumps(large_json, indent=2))
 
     print("\nOpen your browser at http://localhost:6020 to view logs")
     print("Press Ctrl+C to exit.")
