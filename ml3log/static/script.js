@@ -1,6 +1,6 @@
 let allLogs = [];
 let searchTerm = '';
-let activeLevel = null;
+let selectedLevels = new Set();
 let activeLogger = '';
 let searchWords = [];
 let autoUpdate = true;
@@ -244,13 +244,15 @@ function renderLogs(logs) {
     const logsContainer = document.getElementById('logs');
     logsContainer.innerHTML = '';
     
+    // Update button visibility based on available logs
+    updateButtonVisibility(logs);
+    
     // Filter logs by search term and level
     let filteredLogs = logs;
     
-    // Apply level filter if active
-    if (activeLevel) {
-        const minLevel = LOG_LEVELS[activeLevel];
-        filteredLogs = filteredLogs.filter(log => LOG_LEVELS[log.levelname] >= minLevel);
+    // Apply level filter if any levels are selected
+    if (selectedLevels.size > 0) {
+        filteredLogs = filteredLogs.filter(log => selectedLevels.has(log.levelname));
     }
     
     // Apply logger filter if active
@@ -429,21 +431,12 @@ function clearLogs() {
 }
 
 function setLevelFilter(level) {
-    // Update active level
-    if (activeLevel === level) {
-        // If clicking the active level, clear the filter
-        activeLevel = null;
-        document.querySelectorAll('.level-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+    // Toggle the level in the selectedLevels Set
+    if (selectedLevels.has(level)) {
+        selectedLevels.delete(level);
+        document.querySelector(`.level-btn.${level.toLowerCase()}`).classList.remove('active');
     } else {
-        // Set new active level
-        activeLevel = level;
-        
-        // Update button states
-        document.querySelectorAll('.level-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
+        selectedLevels.add(level);
         document.querySelector(`.level-btn.${level.toLowerCase()}`).classList.add('active');
     }
     

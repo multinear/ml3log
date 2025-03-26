@@ -78,7 +78,7 @@ h1 {
 .level-btn.warning::after { background-color: var(--color-warning); }
 .level-btn.error::after { background-color: var(--color-error); }
 .level-btn.critical::after { background-color: var(--color-critical); }
-
+.level-btn.debug::after { background-color: var(--color-debug); }
 .level-btn.active {
     color: white;
     font-weight: bold;
@@ -87,6 +87,11 @@ h1 {
 .level-btn.warning.active { background-color: var(--color-warning); border-color: var(--color-warning); color: #212529; }
 .level-btn.error.active { background-color: var(--color-error); border-color: var(--color-error); }
 .level-btn.critical.active { background-color: var(--color-critical); border-color: var(--color-critical); }
+.level-btn.debug.active { background-color: var(--color-debug); border-color: var(--color-debug); }
+.level-btn.hidden {
+    display: inline-block;
+    opacity: 0.3;
+}
 
 .search-container { 
     display: flex;
